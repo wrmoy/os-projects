@@ -1,4 +1,4 @@
-/* Project 1 -- SISH -- Brian Dunlay / William Moy */
+/* Project 1 -- SISH -- Brian Dunlay / William Moy -- CS 170 W'11 */
 
 #include <stdio.h>
 
