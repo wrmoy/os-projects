@@ -18,35 +18,8 @@ int main()
 	
 		// should also exit on ctrl+d, aka EOF
 		if (!strcmp(cmd_buff, "exit\n")) {
-			printf("Exit\n");
+			return 0;
 		}
-		else if (!strcmp(cmd_buff, "ls\n")) {
-			printf("List\n");
-		}
-		else if (!strcmp(cmd_buff, "cat\n")) {
-			printf("Concatenate\n");
-		}
-		else if (!strcmp(cmd_buff, "pwd\n")) {
-			printf("Print working directory\n");
-		}	
-		else if (!strcmp(cmd_buff, "cd\n")) {
-			printf("Change directory\n");
-		}	
-		else if (!strcmp(cmd_buff, "rm\n")) {
-			printf("Remove\n");
-		}	
-		else if (!strcmp(cmd_buff, "mv\n")) {
-			printf("Move\n");
-		}	
-		else if (!strcmp(cmd_buff, "mkdir\n")) {
-			printf("Make Directory\n");
-		}	
-		else if (!strcmp(cmd_buff, "echo\n")) {
-			printf("Echo\n");
-		}	
-		else {
-			printf("-sish: command not found: %s", cmd_buff);
-		}	
 	}
 	
 	return 0;
