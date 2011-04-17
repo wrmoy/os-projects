@@ -17,12 +17,13 @@ int main()
 			return 0;
 		}
 
+		// separate processes
 		char* token = strtok(buffer, "|");	
 		while(token != NULL) {
 			printf("%s ", token);
 			token = strtok(NULL, "|");
 		}
 	}
+	
 	return 0;
 }
-
