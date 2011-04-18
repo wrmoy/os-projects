@@ -2,8 +2,13 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <errno.h> 
+#include <sys/wait.h>
 
 #define BUFF_MAX 1025 // 1024 + null terminating char
+
+void parse_arg(char* arg); 
 
 int main()
 {
@@ -12,17 +17,25 @@ int main()
 		printf("sish:> ");
 		fgets(buffer, BUFF_MAX, stdin);
 
-		// should also exit on ctrl+d, aka EOF
+		// need to add ctrl+d exit
 		if (!strcmp(buffer, "exit\n")) {
 			return 0;
 		}
 
-		// separate processes
-		char* token = strtok(buffer, "|");	
-		while(token != NULL) {
-			printf("%s ", token);
-			token = strtok(NULL, "|");
+		char* args[BUFF_MAX] = {0};
+		int i = 0;
+		char* arg = strtok(buffer, " ");
+		
+		for (i = 0; arg != NULL; i++) {
+			char x[BUFF_MAX] = "";
+			strcpy(x, arg);
+			args[i] = x;
+			arg = strtok(NULL, " ");
+			printf("PROC: %s\n", args[i]);
 		}
+		
+		args[++i] = NULL;
+		
 	}
 	
 	return 0;
