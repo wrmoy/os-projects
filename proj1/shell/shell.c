@@ -24,7 +24,8 @@ int main()
 	char* rin_fname = malloc(sizeof(char)*ARGLEN_MAX);
 	char* rout_fname = malloc(sizeof(char)*ARGLEN_MAX);
 	//char* pipe_toks[2];
-	char** args = NULL; //malloc(sizeof(char*)*ARG_MAX);
+	char** args = malloc(sizeof(char*)*ARG_MAX);//NULL;
+	memset(args, 0, 16);
 	int i = 0;
 	//for (i=0; i < ARG_MAX; i++)
 	//	args[i] = malloc(sizeof(char)*ARGLEN_MAX);
@@ -47,9 +48,11 @@ startloop:
 		// check for the placement of special characters (<, >, and &)
 		int rinflag = 0;  int routflag = 0;  int pipeflag = 0;
 		for (i = 0; buffer[i] != '\0'; i++) {
-			if (buffer[i] == '&') {
-				if (buffer[i+1] == '\n')
+			if (buffer[i] == '&' && buffer > 0 && buffer[i-1] == ' ') {
+				if (buffer[i+1] == '\n') {
 					background_flag = 1;
+					buffer[i] = ' ';
+				}
 				else {
 					printf("ERROR: misplaced &\n");
 					goto startloop;
@@ -91,22 +94,40 @@ startloop:
 		}
 		*/
 		
+		
+		// get redirects
 		if (rinflag) {
+			// get the filename
 			char* tempstr;
-			strtok(buffer, "<");
+			tempstr = strtok(buffer, "<");
+			strcpy(buffer, tempstr);
 			tempstr = strtok(NULL, " \n\t");
-			tempstr = strtok(tempstr, " \n\t");
 			strcpy(rin_fname, tempstr);
-			printf("\n\nfilein: %s\n\n", rin_fname);
+			// copy the rest of the args back in
+			tempstr = strtok(NULL, " \n\t");
+			while (tempstr != NULL) {
+				strcat(buffer, " ");
+				strcat(buffer, tempstr);
+				tempstr = strtok(NULL, " \n\t");
+			}
 		}
 		if (routflag) {
+			// get the filename
 			char* tempstr;
-			strtok(buffer, ">");
+			tempstr = strtok(buffer, ">");
+			strcpy(buffer, tempstr);
 			tempstr = strtok(NULL, " \n\t");
-			tempstr = strtok(tempstr, " \n\t");
 			strcpy(rout_fname, tempstr);
-			printf("\n\nfileout: %s\n\n", rout_fname);
+			// copy the rest of the args back in
+			tempstr = strtok(NULL, " \n\t");
+			while (tempstr != NULL) {
+				strcat(buffer, " ");
+				strcat(buffer, tempstr);
+				tempstr = strtok(NULL, " \n\t");
+			}
 		}
+		
+		// separate args
 		int numargs = 0;
 		char* t = strtok(buffer, " \n\t");
 		for (numargs=0; t != NULL; numargs++) {
@@ -115,10 +136,17 @@ startloop:
 			strcpy(args[numargs], t);
 			t = strtok(NULL, " \n\t");
 		}
+		
+		/* WTF */
+		
 		numargs++;
-		args = realloc(args, sizeof(char*)*(numargs+1));
-		args[numargs] = 0;
-		int pid;
+		args = realloc(args, sizeof(char*)*(numargs+1));  // WHAT THE FUCK 
+		args[numargs] = NULL;
+		
+		/* WTF */
+		
+		// fork it.  fork it all.
+		pid_t pid;
 		int status;
 		switch (pid = fork()) {
 			case 0:
@@ -129,7 +157,7 @@ startloop:
 					close(fdin);
 				}
 				if (routflag) {
-					fdout = open(rout_fname, O_WRONLY);
+					fdout = open(rout_fname, O_WRONLY, 0644);
 					close(STDOUT_FILENO);
 					dup2(fdout, STDOUT_FILENO);
 					close(fdout);
@@ -147,10 +175,6 @@ startloop:
 				break;
 		}
 		
-		if (rinflag) {
-			
-		}
-		
 		
 		for (i=0; i < numargs; i++)
 			free(args[i]);
@@ -159,9 +183,9 @@ startloop:
 	}
 	
 end:
-	// free memory
 	free(tokens);
 	free(rin_fname);
+	free(rout_fname);
 	
 	return 0;
 }
