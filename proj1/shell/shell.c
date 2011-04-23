@@ -24,9 +24,10 @@ int main()
 	char** args = NULL;
 	int i = 0;
 	int numargs = 0;
+	int go = 1;
 	
 startloop:
-	while(1){
+	while(go){
 		int background_flag = 0;
 		int pipedcnt = 0;
 		int fdout = 0;
@@ -37,18 +38,19 @@ startloop:
 		fgets(buffer, BUFF_MAX, stdin);
 
 		// need to add ctrl+d exit
-		if (feof(stdin))
-			goto end;
+		if (feof(stdin)) {
+			go = 0;
+		}
 		if (!strcmp(buffer, "exit\n"))
 			goto end;
 		if (!strcmp(buffer, "\n"))
 			goto startloop;
 
-		// check for the placement of special characters (<, >, and &)
+		// check for the placement of special characters (<, >, &, |)
 		int rinflag = 0;  int routflag = 0;  int pipeflag = 0;
 		for (i = 0; buffer[i] != '\0'; i++) {
-			if (buffer[i] == '&' && buffer > 0 && buffer[i-1] == ' ') {
-				if (buffer[i+1] == '\n') {
+			if (buffer[i] == '&') {
+				if (i > 0 && buffer[i-1] == ' ' && buffer[i+1] == '\n') {
 					background_flag = 1;
 					buffer[i] = ' ';
 				}
@@ -62,9 +64,17 @@ startloop:
 					printf("ERROR: too many > characters\n");
 					goto startloop;
 				}
+				else if (i == 0) {
+					printf("ERROR: can't start with >\n");
+					goto startloop;
+				}
 				routflag = 1;
 			}
 			if (buffer[i] == '|') {
+				if (i == 0) {
+					printf("ERROR: can't start with |\n");
+					goto startloop;
+				}
 				pipeflag = 1;
 				if (routflag == 1) {
 					printf("ERROR: misplaced >\n");
@@ -72,6 +82,10 @@ startloop:
 				}
 			}
 			if (buffer[i] == '<'){
+				if (i == 0) {
+					printf("ERROR: can't start with <\n");
+					goto startloop;
+				}
 				if (rinflag) {
 					printf("ERROR: too many > characters\n");
 					goto startloop;
@@ -127,6 +141,7 @@ startloop:
 				tempstr = strtok(NULL, " \n\t");
 				if (tempstr == NULL) {
 					printf("ERROR: nothing before the redirect\n");
+					free(cmd);
 					goto startloop;
 				}
 				strcpy(rin_fname, tempstr);
@@ -146,6 +161,7 @@ startloop:
 				tempstr = strtok(NULL, " \n\t");
 				if (tempstr == NULL) {
 					printf("ERROR: nothing before the redirect\n");
+					free(cmd);
 					goto startloop;
 				}
 				strcpy(rout_fname, tempstr);
@@ -190,7 +206,7 @@ startloop:
 						close(fdin);
 					}
 					if (procno == pipedcnt-1 && routflag) {
-						fdout = open(rout_fname, O_WRONLY | O_CREAT, 0644);
+						fdout = open(rout_fname, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 						close(STDOUT_FILENO);
 						dup2(fdout, STDOUT_FILENO);
 						close(fdout);
