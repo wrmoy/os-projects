@@ -11,19 +11,20 @@
 #include <fcntl.h>
 
 
-#define BUFF_MAX 1025 // 1024 + null terminating char
+#define BUFF_MAX 1032 // 1024 + some extra.  Justin Case.
 #define ARG_MAX 16
 #define ARGLEN_MAX 64
 
 int main()
 {
-	char buffer[BUFF_MAX] = "";
+	char* buffer = malloc(sizeof(char)*BUFF_MAX);
 	char* tokens = malloc(sizeof(char)*BUFF_MAX);
 	char* rin_fname = malloc(sizeof(char)*ARGLEN_MAX);
 	char* rout_fname = malloc(sizeof(char)*ARGLEN_MAX);
 	char** args = NULL;
 	int i = 0;
 	int numargs = 0;
+	int status;
 	int go = 1;
 	
 startloop:
@@ -36,11 +37,13 @@ startloop:
 		
 		if (isatty(STDIN_FILENO)) printf("sish:> ");
 		fgets(buffer, BUFF_MAX, stdin);
+		//printf("buffer: %s\n", buffer);
 
 		// need to add ctrl+d exit
-		if (feof(stdin)) {
+		if (feof(stdin))
 			go = 0;
-		}
+		if (!strcmp(buffer, "\0"))
+			goto end;
 		if (!strcmp(buffer, "exit\n"))
 			goto end;
 		if (!strcmp(buffer, "\n"))
@@ -126,7 +129,6 @@ startloop:
 		// divide line by pipe chars
 		int procno;
 		pid_t lastpid;
-		int status;
 		for(procno = 0; procno < pipedcnt; procno++) {
 			// prepare command
 			char* cmd = malloc(sizeof(char)*(strlen(cmds[procno])+1));
@@ -213,7 +215,6 @@ startloop:
 					}
 					if (background_flag) {
 						if (setsid() < 0) printf("ERROR: could not set sessionid\n");
-						signal(SIGCHLD, SIG_IGN);
 					}
 					if (execvp(args[0], args) == -1) {
 						printf("ERROR: could not execute %s\n", args[0]);
@@ -244,6 +245,8 @@ startloop:
 	}
 	
 end:
+	waitpid(-1, &status, WNOHANG);
+	free(buffer);
 	free(tokens);
 	free(rin_fname);
 	free(rout_fname);
