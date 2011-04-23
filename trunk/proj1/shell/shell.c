@@ -94,13 +94,12 @@ startloop:
 		int procno;
 		pid_t lastpid;
 		int status;
-		char* pipe_toks[2];
-		pipe_toks[0] = strtok(buffcopy, "|");
-		pipe_toks[1] = strtok(NULL, "|");
-		for(procno = 0; pipe_toks[0] != NULL; procno++) {
+		char* pipe_tok;
+		pipe_tok = strtok(buffcopy, "|");
+		for(procno = 0; pipe_tok != NULL; procno++) {
 			// prepare command
-			char* cmd = malloc(sizeof(char)*(strlen(pipe_toks[0])+1));
-			strcpy(cmd, pipe_toks[0]);
+			char* cmd = malloc(sizeof(char)*(strlen(pipe_tok)+1));
+			strcpy(cmd, pipe_tok);
 			
 			// get redirects
 			if (procno == 0 && rinflag) {
@@ -158,9 +157,9 @@ startloop:
 							printf("redirecting proc%i out\n", procno);
 						}
 						if (procno != 0) {
-							close(STDIN_FILENO);
-							dup2(pfds[procno-1][0], STDIN_FILENO);
-							close(pfds[procno-1][0]);
+							//close(STDIN_FILENO);
+							//dup2(pfds[procno-1][0], STDIN_FILENO);
+							//close(pfds[procno-1][0]);
 							printf("redirecting proc%i in\n", procno);
 						}
 						printf("finished redirecting the pipes in proc%i\n", procno);
@@ -192,8 +191,7 @@ startloop:
 	
 			
 			// get new command sequence
-			pipe_toks[0] = pipe_toks[1];
-			pipe_toks[1] = strtok(NULL, "|");
+			pipe_tok = strtok(NULL, "|");
 			free(cmd);
 		}
 		
