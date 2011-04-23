@@ -11,13 +11,13 @@
 #include <fcntl.h>
 
 
-#define BUFF_MAX 1032 // 1024 + some extra.  Justin Case.
+#define BUFF_MAX 1032 // 1024 + some.  Justin Case.
 #define ARG_MAX 16
 #define ARGLEN_MAX 64
 
 int main()
 {
-	char* buffer = malloc(sizeof(char)*BUFF_MAX);
+	char buffer[BUFF_MAX] = "";
 	char* tokens = malloc(sizeof(char)*BUFF_MAX);
 	char* rin_fname = malloc(sizeof(char)*ARGLEN_MAX);
 	char* rout_fname = malloc(sizeof(char)*ARGLEN_MAX);
@@ -36,9 +36,8 @@ startloop:
 		
 		if (isatty(STDIN_FILENO)) printf("sish:> ");
 		fgets(buffer, BUFF_MAX, stdin);
-		//printf("buffer: %s\n", buffer);
 
-		// need to add ctrl+d exit
+		// special commands or exits
 		if (feof(stdin))
 			go = 0;
 		if (!strcmp(buffer, "\0"))
@@ -215,6 +214,7 @@ startloop:
 					}
 					if (background_flag) {
 						if (setsid() < 0) printf("ERROR: could not set sessionid\n");
+						signal(SIGCHLD, SIG_IGN);
 					}
 					if (execvp(args[0], args) == -1) {
 						printf("ERROR: could not execute %s\n", args[0]);
@@ -245,7 +245,6 @@ startloop:
 	}
 	
 end:
-	free(buffer);
 	free(tokens);
 	free(rin_fname);
 	free(rout_fname);
