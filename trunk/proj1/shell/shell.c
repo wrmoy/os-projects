@@ -15,15 +15,13 @@
 #define ARG_MAX 16
 #define ARGLEN_MAX 64
 
-void parse_arg(char* arg); 
-
 int main()
 {
 	char buffer[BUFF_MAX] = "";
 	char* tokens = malloc(sizeof(char)*BUFF_MAX);
 	char* rin_fname = malloc(sizeof(char)*ARGLEN_MAX);
 	char* rout_fname = malloc(sizeof(char)*ARGLEN_MAX);
-	char** args = NULL; //malloc(sizeof(char*)*ARG_MAX);
+	char** args = NULL;
 	int i = 0;
 	int numargs = 0;
 	
@@ -82,6 +80,12 @@ startloop:
 		while(strtok(NULL, "|") != NULL)
 			pipedcnt++;
 		strcpy(buffcopy, buffer);
+		
+		// put the commands in an array
+		char** cmds = malloc(sizeof(char*)*pipedcnt);
+		cmds[0] = strtok(buffcopy, "|");
+		for (i=1; i<pipedcnt; i++)
+			cmds[i] = strtok(NULL, "|");
 
 		// create pipes
 		int** pfds = malloc(sizeof(int*)*pipedcnt-1);
@@ -94,12 +98,11 @@ startloop:
 		int procno;
 		pid_t lastpid;
 		int status;
-		char* pipe_tok;
-		pipe_tok = strtok(buffcopy, "|");
-		for(procno = 0; pipe_tok != NULL; procno++) {
+		for(procno = 0; procno < pipedcnt; procno++) {
 			// prepare command
-			char* cmd = malloc(sizeof(char)*(strlen(pipe_tok)+1));
-			strcpy(cmd, pipe_tok);
+			char* cmd = malloc(sizeof(char)*(strlen(cmds[procno])+1));
+			strcpy(cmd, cmds[procno]);
+			printf("starting to work with %s\n", cmd);
 			
 			// get redirects
 			if (procno == 0 && rinflag) {
@@ -135,34 +138,28 @@ startloop:
 		
 			// separate args
 			char* t = strtok(cmd, " \n\t");
-			for (numargs=0; t != NULL; numargs++) {
+			numargs = 0;
+			while (t != NULL) {
 				args = realloc(args, sizeof(char*)*(numargs+1));
 				args[numargs] = realloc(args[numargs], sizeof(char)*ARGLEN_MAX);
 				strcpy(args[numargs], t);
 				t = strtok(NULL, " \n\t");
+				numargs++;
 			}
 			args = realloc(args, sizeof(char*)*(numargs+1));
 			args[numargs] = NULL;
 			
-			printf("starting to fork proc%i\n", procno);
-			// fork it.  fork it all.
+			// fork it.  fork this project.
 			switch (lastpid = fork()) {
 				case 0:
 					if (pipedcnt > 1) {
-						printf("starting to redirect the pipes in proc%i\n", procno);
-						if (procno != pipedcnt-1) {
-							//close(STDOUT_FILENO);
-							//dup2(pfds[procno][1], STDOUT_FILENO);
-							//close(pfds[procno][1]);
-							printf("redirecting proc%i out\n", procno);
+						if (procno != 0) { // redirect child's input to the last pipe
+							dup2(pfds[procno-1][0], STDIN_FILENO);
+							close(pfds[procno-1][1]);
 						}
-						if (procno != 0) {
-							//close(STDIN_FILENO);
-							//dup2(pfds[procno-1][0], STDIN_FILENO);
-							//close(pfds[procno-1][0]);
-							printf("redirecting proc%i in\n", procno);
+						if (procno != pipedcnt-1) { // redirect child's output to pipe
+							dup2(pfds[procno][1], STDOUT_FILENO);
 						}
-						printf("finished redirecting the pipes in proc%i\n", procno);
 						
 					}
 					if (procno == 0 && rinflag) {
@@ -185,13 +182,14 @@ startloop:
 					goto startloop;
 					break;
 				default:
-//					waitpid(lastpid, &status, 0); 
+					if (pipedcnt > 1 && procno != 0) {
+						close(pfds[procno-1][0]);
+						close(pfds[procno-1][1]);
+					}
 					break;
 			}
-	
 			
-			// get new command sequence
-			pipe_tok = strtok(NULL, "|");
+			// free memory
 			free(cmd);
 		}
 		
@@ -207,9 +205,9 @@ end:
 	free(rin_fname);
 	free(rout_fname);
 	for (i=0 ; i <= numargs; i++) {
-		free(args[i]);
+		if (args != NULL && args[i] != NULL) free(args[i]);
 	}
-	free(args);
+	if (args != NULL) free(args);
 	
 	return 0;
 }
