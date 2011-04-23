@@ -33,13 +33,16 @@ startloop:
 		int fdin = 0;
 		numargs = 0;
 		
-		printf("sish:> ");
+		if (isatty(STDIN_FILENO)) printf("sish:> ");
 		fgets(buffer, BUFF_MAX, stdin);
 
 		// need to add ctrl+d exit
-		if (!strcmp(buffer, "exit\n")) {
+		if (feof(stdin))
 			goto end;
-		}
+		if (!strcmp(buffer, "exit\n"))
+			goto end;
+		if (!strcmp(buffer, "\n"))
+			goto startloop;
 
 		// check for the placement of special characters (<, >, and &)
 		int rinflag = 0;  int routflag = 0;  int pipeflag = 0;
@@ -54,8 +57,13 @@ startloop:
 					goto startloop;
 				}
 			}
-			if (buffer[i] == '>')
+			if (buffer[i] == '>') {
+				if (routflag) {
+					printf("ERROR: too many > characters\n");
+					goto startloop;
+				}
 				routflag = 1;
+			}
 			if (buffer[i] == '|') {
 				pipeflag = 1;
 				if (routflag == 1) {
@@ -64,6 +72,10 @@ startloop:
 				}
 			}
 			if (buffer[i] == '<'){
+				if (rinflag) {
+					printf("ERROR: too many > characters\n");
+					goto startloop;
+				}
 				rinflag = 1;
 				if (pipeflag == 1) {
 					printf("ERROR: misplaced <\n");
@@ -91,7 +103,10 @@ startloop:
 		int** pfds = malloc(sizeof(int*)*pipedcnt-1);
 		for (i=0; i < pipedcnt-1; i++) {
 			pfds[i] = malloc(sizeof(int)*2);
-			pipe(pfds[i]);
+			if (pipe(pfds[i]) != 0) {
+				printf("ERROR: pipe could not be created\n");
+				goto startloop;
+			}
 		}
 		
 		// divide line by pipe chars
@@ -102,7 +117,6 @@ startloop:
 			// prepare command
 			char* cmd = malloc(sizeof(char)*(strlen(cmds[procno])+1));
 			strcpy(cmd, cmds[procno]);
-			printf("starting to work with %s\n", cmd);
 			
 			// get redirects
 			if (procno == 0 && rinflag) {
@@ -111,6 +125,10 @@ startloop:
 				tempstr = strtok(cmd, "<");
 				strcpy(cmd, tempstr);
 				tempstr = strtok(NULL, " \n\t");
+				if (tempstr == NULL) {
+					printf("ERROR: nothing before the redirect\n");
+					goto startloop;
+				}
 				strcpy(rin_fname, tempstr);
 				// copy the rest of the args back in
 				tempstr = strtok(NULL, " \n\t");
@@ -126,6 +144,10 @@ startloop:
 				tempstr = strtok(cmd, ">");
 				strcpy(cmd, tempstr);
 				tempstr = strtok(NULL, " \n\t");
+				if (tempstr == NULL) {
+					printf("ERROR: nothing before the redirect\n");
+					goto startloop;
+				}
 				strcpy(rout_fname, tempstr);
 				// copy the rest of the args back in
 				tempstr = strtok(NULL, " \n\t");
@@ -160,7 +182,6 @@ startloop:
 						if (procno != pipedcnt-1) { // redirect child's output to pipe
 							dup2(pfds[procno][1], STDOUT_FILENO);
 						}
-						
 					}
 					if (procno == 0 && rinflag) {
 						fdin = open(rin_fname, O_RDONLY);
@@ -174,15 +195,21 @@ startloop:
 						dup2(fdout, STDOUT_FILENO);
 						close(fdout);
 					}
-					execvp(args[0], args);
-					return 0;
+					if (background_flag) {
+						if (setsid() < 0) printf("ERROR: could not set sessionid\n");
+						signal(SIGCHLD, SIG_IGN);
+					}
+					if (execvp(args[0], args) == -1) {
+						printf("ERROR: could not execute %s\n", args[0]);
+						goto end;
+					}
 					break;
 				case -1:
 					printf("ERROR: could not create new process");
 					goto startloop;
 					break;
 				default:
-					if (pipedcnt > 1 && procno != 0) {
+					if (pipedcnt > 1 && procno != 0) { // squeeze the last pipe
 						close(pfds[procno-1][0]);
 						close(pfds[procno-1][1]);
 					}
@@ -193,7 +220,7 @@ startloop:
 			free(cmd);
 		}
 		
-		waitpid(lastpid, &status, 0);
+		if (!background_flag) waitpid(lastpid, &status, 0);
 		for (i=0; i < pipedcnt-1; i++) {
 			free(pfds[i]);
 		}
