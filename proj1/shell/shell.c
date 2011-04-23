@@ -24,7 +24,6 @@ int main()
 	char** args = NULL;
 	int i = 0;
 	int numargs = 0;
-	int status;
 	int go = 1;
 	
 startloop:
@@ -129,6 +128,7 @@ startloop:
 		// divide line by pipe chars
 		int procno;
 		pid_t lastpid;
+		int status;
 		for(procno = 0; procno < pipedcnt; procno++) {
 			// prepare command
 			char* cmd = malloc(sizeof(char)*(strlen(cmds[procno])+1));
@@ -245,7 +245,6 @@ startloop:
 	}
 	
 end:
-	waitpid(-1, &status, WNOHANG);
 	free(buffer);
 	free(tokens);
 	free(rin_fname);
