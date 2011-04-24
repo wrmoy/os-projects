@@ -53,7 +53,7 @@ startloop:
 		int rinflag = 0;  int routflag = 0;  int pipeflag = 0;
 		for (i = 0; buffer[i] != '\0'; i++) {
 			if (buffer[i] == '&') {
-				if (i > 0 && buffer[i-1] == ' ' && buffer[i+1] == '\n') {
+				if (i > 0 && buffer[i-1] == ' ' && (buffer[i+1] == '\n' || buffer[i+1] == '\0')) {
 					background_flag = 1;
 					buffer[i] = ' ';
 				}
