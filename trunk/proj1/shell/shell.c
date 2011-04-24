@@ -17,7 +17,7 @@
 
 int main()
 {
-	char buffer[BUFF_MAX] = "";
+	char* buffer = malloc(sizeof(char)*BUFF_MAX);
 	char* tokens = malloc(sizeof(char)*BUFF_MAX);
 	char* rin_fname = malloc(sizeof(char)*ARGLEN_MAX);
 	char* rout_fname = malloc(sizeof(char)*ARGLEN_MAX);
@@ -35,7 +35,9 @@ startloop:
 		numargs = 0;
 		
 		if (isatty(STDIN_FILENO)) printf("sish:> ");
-		fgets(buffer, BUFF_MAX, stdin);
+		if (fgets(buffer, BUFF_MAX, stdin) == NULL)
+			goto end;
+		//printf("buffer: %s\n", buffer);
 
 		// special commands or exits
 		if (feof(stdin))
@@ -245,6 +247,7 @@ startloop:
 	}
 	
 end:
+	free(buffer);
 	free(tokens);
 	free(rin_fname);
 	free(rout_fname);
