@@ -52,7 +52,7 @@ startloop:
 		int rinflag = 0;  int routflag = 0;  int pipeflag = 0;
 		for (i = 0; buffer[i] != '\0'; i++) {
 			if (buffer[i] == '&') {
-				if (i > 0 && buffer[i-1] == ' ' && (buffer[i+1] == '\n' || buffer[i+1] == '\0')) {
+				if (buffer[i+1] == '\n' || buffer[i+1] == '\0') {
 					background_flag = 1;
 					buffer[i] = ' ';
 				}
@@ -115,7 +115,7 @@ startloop:
 		for (i=1; i<pipedcnt; i++)
 			cmds[i] = strtok(NULL, "|");
 
-		// create pipes
+		// create pipes (if necessary)
 		int** pfds = malloc(sizeof(int*)*pipedcnt-1);
 		for (i=0; i < pipedcnt-1; i++) {
 			pfds[i] = malloc(sizeof(int)*2);
@@ -140,9 +140,9 @@ startloop:
 				char* tempstr;
 				tempstr = strtok(cmd, "<");
 				strcpy(cmd, tempstr);
-				tempstr = strtok(NULL, " \n\t");
+				tempstr = strtok(NULL, " \n\t>");
 				if (tempstr == NULL) {
-					printf("ERROR: nothing before the redirect\n");
+					printf("ERROR: nothing after the redirect\n");
 					free(cmd);
 					goto startloop;
 				}
@@ -156,11 +156,11 @@ startloop:
 				else
 					fclose(fin);
 				// copy the rest of the args back in
-				tempstr = strtok(NULL, " \n\t");
+				tempstr = strtok(NULL, " \n\t>");
 				while (tempstr != NULL) {
 					strcat(cmd, " ");
 					strcat(cmd, tempstr);
-					tempstr = strtok(NULL, " \n\t");
+					tempstr = strtok(NULL, " \n\t>");
 				}
 			}
 			if (procno == pipedcnt-1 && routflag) { // redirect out
@@ -168,19 +168,19 @@ startloop:
 				char* tempstr;
 				tempstr = strtok(cmd, ">");
 				strcpy(cmd, tempstr);
-				tempstr = strtok(NULL, " \n\t");
+				tempstr = strtok(NULL, " \n\t<");
 				if (tempstr == NULL) {
-					printf("ERROR: nothing before the redirect\n");
+					printf("ERROR: nothing after the redirect\n");
 					free(cmd);
 					goto startloop;
 				}
 				strcpy(rout_fname, tempstr);
 				// copy the rest of the args back in
-				tempstr = strtok(NULL, " \n\t");
+				tempstr = strtok(NULL, " \n\t<");
 				while (tempstr != NULL) {
 					strcat(cmd, " ");
 					strcat(cmd, tempstr);
-					tempstr = strtok(NULL, " \n\t");
+					tempstr = strtok(NULL, " \n\t<");
 				}
 			}
 		
