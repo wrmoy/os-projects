@@ -12,8 +12,7 @@
 
 
 #define BUFF_MAX 1032 // 1024 + some.  Justin Case.
-#define ARG_MAX 16
-#define ARGLEN_MAX 64
+#define ARGLEN_MAX 128
 
 int main()
 {
@@ -136,7 +135,7 @@ startloop:
 			strcpy(cmd, cmds[procno]);
 			
 			// get redirects
-			if (procno == 0 && rinflag) {
+			if (procno == 0 && rinflag) { // redirect in
 				// get the filename
 				char* tempstr;
 				tempstr = strtok(cmd, "<");
@@ -148,6 +147,14 @@ startloop:
 					goto startloop;
 				}
 				strcpy(rin_fname, tempstr);
+				// check if file is valid
+				FILE* fin = fopen(rin_fname, "r");
+				if (fin == NULL) {
+					printf("ERROR: file %s does not exist\n", rin_fname);
+					goto startloop;
+				}
+				else
+					fclose(fin);
 				// copy the rest of the args back in
 				tempstr = strtok(NULL, " \n\t");
 				while (tempstr != NULL) {
@@ -156,7 +163,7 @@ startloop:
 					tempstr = strtok(NULL, " \n\t");
 				}
 			}
-			if (procno == pipedcnt-1 && routflag) {
+			if (procno == pipedcnt-1 && routflag) { // redirect out
 				// get the filename
 				char* tempstr;
 				tempstr = strtok(cmd, ">");
