@@ -11,7 +11,7 @@
 #include <fcntl.h>
 
 
-#define BUFF_MAX 1032 // 1024 + some.  Justin Case.
+#define BUFF_MAX 1152 // 1024 + some.  Justin Case.
 #define ARGLEN_MAX 128
 
 int main()
